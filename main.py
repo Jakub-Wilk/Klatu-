@@ -121,7 +121,7 @@ async def handle_stop(guild_id: int):
     voice: discord.VoiceClient = dget(client.voice_clients, guild__id=guild_id)
 
     if voice and voice.is_connected():
-        state[guild_id].queue = [state[guild_id].queue[0]]
+        state[guild_id].queue = []
         await voice.disconnect()
         await update_player(guild_id)
 
@@ -139,16 +139,8 @@ async def handle_loop(guild_id: int):
         LoopState.Queue: LoopState.Single,
         LoopState.Single: LoopState.NoLoop
     }
-    messages = {
-        LoopState.NoLoop: "Zaprzestaję loopowania",
-        LoopState.Queue: "Loopuję kolejkę",
-        LoopState.Single: "Loopuję piosnkę"
-    }
     state[guild_id].settings.loop = state_changes[state[guild_id].settings.loop]
-    _db.update_one({"guild_id": guild_id}, {"$set": {"settings.loop": state[guild_id].settings.loop}})
-    message = await state[guild_id].channel.send(messages[state[guild_id].settings.loop])
-    await asyncio.sleep(5)
-    await message.delete()
+    await update_player(guild_id)
 
 
 async def handle_shuffle(guild_id: int):
@@ -173,10 +165,7 @@ player_controls = {
 
 async def handle_reaction(emoji: str, guild_id: int):
     if emoji in player_controls.keys():
-        try:
-            await player_controls[emoji](guild_id)
-        except NotImplementedError:
-            print(f"{emoji}")
+        await player_controls[emoji](guild_id)
     else:
         return
 
@@ -189,7 +178,7 @@ async def init(ctx: discord.ApplicationContext, channel_name: str):
         await ctx.respond(f"Bot już prężnie działa na <#{channel_id}>", ephemeral=True)
     else:
         new_channel = await guild.create_text_channel(channel_name)
-        player_message = get_empty_player()
+        player_message = get_empty_player(guild.id)
         player = await new_channel.send(player_message[0], embed=player_message[1])
         for emoji in player_controls:
             await player.add_reaction(emoji)
@@ -221,22 +210,29 @@ async def remove(ctx: discord.ApplicationContext, song_id: int):
         else:
             queue.pop(song_id)
             await update_player(guild.id)
-            
 
 
-def get_empty_player() -> tuple[str, discord.Embed]:
-    return (get_empty_queue(), get_empty_embed())
+loop_indicators = {
+    LoopState.NoLoop: "Brak ❌",
+    LoopState.Queue: "Kolejka ♾️",
+    LoopState.Single: "Piosnka 1️⃣"
+}
+
+
+def get_empty_player(guild_id) -> tuple[str, discord.Embed]:
+    return (get_empty_queue(), get_empty_embed(guild_id))
 
 
 def get_empty_queue() -> str:
     return "**__Kolejka:__**\n     -"
 
 
-def get_empty_embed() -> discord.Embed:
+def get_empty_embed(guild_id) -> discord.Embed:
+    loop_state = state[guild_id].settings.loop
     embed = discord.Embed(
         color = discord.Color.from_rgb(3, 188, 255),
         title = "Cicho tu...",
-        description = "Wyślij tytuł albo URL piosnki aby dodać ją do kolejki!"
+        description = f"**Loop:** {loop_indicators[loop_state]}\nWyślij tytuł albo URL piosnki aby dodać ją do kolejki!"
     )
     embed.set_image(url="https://i.imgur.com/jIlHGic.png")
     return embed
@@ -260,10 +256,11 @@ def get_active_queue(guild_id: int) -> str:
 
 def get_active_embed(guild_id: int) -> discord.Embed:
     song = state[guild_id].queue[0]
+    loop_state = state[guild_id].settings.loop
     embed = discord.Embed(
         color = discord.Color.from_rgb(3, 188, 255),
         title = song.title,
-        description = "Wyślij tytuł albo URL piosnki aby dodać ją do kolejki!"
+        description = f"**Loop:** {loop_indicators[loop_state]}\nWyślij tytuł albo URL piosnki aby dodać ją do kolejki!"
     )
     embed.set_image(url=song.thumbnail_url)
     return embed
@@ -272,7 +269,7 @@ def get_active_embed(guild_id: int) -> discord.Embed:
 async def update_player(guild_id: int):
     player = state[guild_id].player
     if len(state[guild_id].queue) == 0:
-        await player.edit(*get_empty_player())
+        await player.edit(*get_empty_player(guild_id))
     else:
         await player.edit(*get_active_player(guild_id))
 
@@ -322,6 +319,7 @@ async def play_next_song(guild_id: str, voice: discord.VoiceClient, stream: Opti
             after = handle_song_end
         )
     else:
+        _db.update_one({"guild_id": guild_id}, {"$set": {"settings.loop": state[guild_id].settings.loop}})
         queue = state[guild_id].queue
         if state[guild_id].settings.loop != LoopState.Single:
             last_song = queue.pop(0)
@@ -343,9 +341,7 @@ async def play_next_song(guild_id: str, voice: discord.VoiceClient, stream: Opti
                 await asyncio.wait_for(wait_for_song(guild_id), 300)
             except asyncio.TimeoutError:
                 await voice.disconnect()
-                message = await state[guild_id].channel.send("Rozłączam się bo mi się nudzi")
-                await asyncio.sleep(10)
-                await message.delete()
+                await state[guild_id].channel.send("Rozłączam się bo mi się nudzi", delete_after=10)
 
 
 @client.event
