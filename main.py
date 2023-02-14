@@ -321,7 +321,7 @@ async def play_next_song(guild_id: str, voice: discord.VoiceClient, stream: Opti
     else:
         _db.update_one({"guild_id": guild_id}, {"$set": {"settings.loop": state[guild_id].settings.loop}})
         queue = state[guild_id].queue
-        if state[guild_id].settings.loop != LoopState.Single:
+        if state[guild_id].settings.loop != LoopState.Single and len(queue) != 0:
             last_song = queue.pop(0)
             if state[guild_id].settings.loop == LoopState.Queue:
                 queue.append(last_song)
