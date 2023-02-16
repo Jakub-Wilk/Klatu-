@@ -313,7 +313,7 @@ async def wait_for_song(guild_id):
 async def play_next_song(guild_id: str, voice: discord.VoiceClient, stream: Optional[str] = None):
     FFMPEG_OPTS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
     handle_song_end = lambda _: asyncio.run_coroutine_threadsafe(play_next_song(guild_id, voice), client.loop).result()
-    if stream:
+    if stream and voice and voice.is_connected():
         voice.play(
             FFmpegPCMAudio(stream, **FFMPEG_OPTS),
             after = handle_song_end
@@ -325,7 +325,7 @@ async def play_next_song(guild_id: str, voice: discord.VoiceClient, stream: Opti
             last_song = queue.pop(0)
             if state[guild_id].settings.loop == LoopState.Queue:
                 queue.append(last_song)
-        if len(state[guild_id].queue) > 0:
+        if len(state[guild_id].queue) > 0 and voice and voice.is_connected():
             await update_player(guild_id)
 
             _, stream = await search(queue[0].query)
