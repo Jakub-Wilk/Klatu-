@@ -275,16 +275,18 @@ async def update_player(guild_id: int):
 
 
 async def search(query: str) -> tuple[Song, str]:
-    with YoutubeDL({"format": "bestaudio", "noplaylist": "True"}) as ydl:
+    with YoutubeDL({"format": "bestaudio", "noplaylist": True, "skip_download": True}) as ydl:
         if validate_url(query) and ("youtube.com" in query or "youtu.be" in query):
             extraction = partial(ydl.extract_info, url=query, download=False)
             info = await client.loop.run_in_executor(None, extraction)
-            return Song(QueryType.Url, query, info["title"], info["thumbnail"]), info["formats"][0]["url"]
+            url = sorted(filter(lambda x: x["audio_ext"] != "none" and x["video_ext"] == "none", info["formats"]), key=lambda x: x["quality"])[-1]["url"]
+            return Song(QueryType.Url, query, info["title"], info["thumbnail"]), url
         else:
             extraction = partial(ydl.extract_info, url=f"ytsearch:{query}", download=False)
             info = await client.loop.run_in_executor(None, extraction)
             info = info["entries"][0]
-            return Song(QueryType.Title, query, info["title"], info["thumbnail"]), info["formats"][0]["url"]
+            url = sorted(filter(lambda x: x["audio_ext"] != "none" and x["video_ext"] == "none", info["formats"]), key=lambda x: x["quality"])[-1]["url"]
+            return Song(QueryType.Title, query, info["title"], info["thumbnail"]), url
 
 
 async def handle_new_song(guild_id: int, query: str, user: discord.Member):
