@@ -342,8 +342,9 @@ async def play_next_song(guild_id: str, voice: discord.VoiceClient, stream: Opti
             try:
                 await asyncio.wait_for(wait_for_song(guild_id), 300)
             except asyncio.TimeoutError:
-                await voice.disconnect()
-                await state[guild_id].channel.send("Rozłączam się bo mi się nudzi", delete_after=10)
+                if voice.is_connected():
+                    await voice.disconnect()
+                    await state[guild_id].channel.send("Rozłączam się bo mi się nudzi", delete_after=10)
 
 
 @client.event
