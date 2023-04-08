@@ -299,7 +299,7 @@ async def update_history(guild_id: int, song: Song):
     if song.query not in state[guild_id].history:
         if len(state[guild_id].history) == 50:
             state[guild_id].history.pop()
-        state[guild_id].history.insert(0, song.query)
+        state[guild_id].history.insert(0, song.title)
         _db.update_one({"guild_id": guild_id}, {"$set": {"history": state[guild_id].history}})
         history_message = state[guild_id].history_message
         await history_message.edit(get_history(guild_id))
@@ -334,8 +334,7 @@ async def handle_new_song(guild_id: int, query: str, user: discord.Member):
     if channel:
         state[guild_id].queue.append(song)
 
-        if song.query_type == QueryType.Title:
-            await update_history(guild_id, song)
+        await update_history(guild_id, song)
 
         voice: discord.VoiceClient = dget(client.voice_clients, guild__id=guild_id)
 
