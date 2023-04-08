@@ -284,7 +284,7 @@ def get_history(guild_id: int) -> str:
         history = []
     if len(history) > 0:
         history_text = ""
-        for counter, search in reversed(list(enumerate(history))):
+        for counter, search in reversed(list(enumerate(history, 1))):
             history_text += f"**{counter if counter >= 10 else f'0{counter}'}.** {search}\n"
     else:
         history_text = ""
