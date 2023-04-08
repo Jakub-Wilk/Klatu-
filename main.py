@@ -258,7 +258,7 @@ def get_active_queue(guild_id: int) -> str:
     if len(queue) > 1:
         queue_text = "**__Kolejka:__**\n"
         if len(queue) > 25:
-            queue_text += "[...]\n"
+            queue_text += "      ...\n"
         for counter, song in reversed(list(enumerate(queue[1:26], 1))):
             title = song.title
             untrimmed_text = f"**{counter if counter >= 10 else f'0{counter}':>6}.** {title}\n"
@@ -348,7 +348,7 @@ async def get_playlist(guild_id, query):
         playlist_existing = [x for x in playlist if x]
         playlist_titles = [item["title"] for item in playlist_existing]
         playlist_thumbnails = [item["thumbnails"][-1]["url"] for item in playlist_existing]
-        playlist_urls = ["" for item in playlist_existing]
+        playlist_urls = [item["url"] for item in playlist_existing]
         songs = [Song(QueryType.Url, playlist_urls[n], playlist_titles[n], playlist_thumbnails[n]) for n in range(len(playlist_titles))]
         for song in songs:
             state[guild_id].queue.append(song)
