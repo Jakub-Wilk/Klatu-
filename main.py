@@ -314,11 +314,15 @@ async def update_player(guild_id: int):
 
 
 async def search(query: str) -> tuple[Song, str]:
-    with YoutubeDL({"format": "bestaudio", "noplaylist": True, "skip_download": True}) as ydl:
+    with YoutubeDL({"format": "bestaudio", "noplaylist": True, "skip_download": True, "playlist_items": "1"}) as ydl:
         if validate_url(query) and ("youtube.com" in query or "youtu.be" in query):
             extraction = partial(ydl.extract_info, url=query, download=False)
             info = await client.loop.run_in_executor(None, extraction)
-            url = sorted(filter(lambda x: x["audio_ext"] != "none" and x["video_ext"] == "none", info["formats"]), key=lambda x: x["quality"])[-1]["url"]
+            if "formats" in info.keys():
+                formats = info["formats"]
+            else:
+                formats = info["entries"][0]["formats"]
+            url = sorted(filter(lambda x: x["audio_ext"] != "none" and x["video_ext"] == "none", formats), key=lambda x: x["quality"])[-1]["url"]
             if "list" in query:
                 playlist = True
             else:
