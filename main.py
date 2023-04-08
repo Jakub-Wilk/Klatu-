@@ -357,7 +357,7 @@ async def wait_for_song(guild_id):
 async def play_next_song(guild_id: str, voice: discord.VoiceClient, stream: Optional[str] = None):
     FFMPEG_OPTS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 
-    def handle_song_end():
+    def handle_song_end(_):
         asyncio.run_coroutine_threadsafe(play_next_song(guild_id, voice), client.loop).result()
 
     if stream and voice and voice.is_connected():
