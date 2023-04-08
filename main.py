@@ -286,7 +286,7 @@ def get_history(guild_id: int) -> str:
         history_text = ""
         for counter, search in reversed(list(enumerate(history, 1))):
             untrimmed_text = f"**{counter if counter >= 10 else f'0{counter}'}.** {search}\n"
-            if len(untrimmed_text > 36):
+            if len(untrimmed_text) > 36:
                 history_text += untrimmed_text[:33] + "..."
             else:
                 history_text += untrimmed_text
@@ -296,12 +296,13 @@ def get_history(guild_id: int) -> str:
 
 
 async def update_history(guild_id: int, song: Song):
-    if len(state[guild_id].history) == 50:
-        state[guild_id].history.pop()
-    state[guild_id].history.insert(0, song.query)
-    _db.update_one({"guild_id": guild_id}, {"$set": {"history": state[guild_id].history}})
-    history_message = state[guild_id].history_message
-    await history_message.edit(get_history(guild_id))
+    if song.query not in state[guild_id].history:
+        if len(state[guild_id].history) == 50:
+            state[guild_id].history.pop()
+        state[guild_id].history.insert(0, song.query)
+        _db.update_one({"guild_id": guild_id}, {"$set": {"history": state[guild_id].history}})
+        history_message = state[guild_id].history_message
+        await history_message.edit(get_history(guild_id))
 
 
 async def update_player(guild_id: int):
