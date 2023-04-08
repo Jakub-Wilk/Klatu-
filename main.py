@@ -332,17 +332,17 @@ async def search(query: str) -> tuple[Song, str]:
             info = info["entries"][0]
             url = sorted(filter(lambda x: x["audio_ext"] != "none" and x["video_ext"] == "none", info["formats"]), key=lambda x: x["quality"])[-1]["url"]
             return Song(QueryType.Title, query, info["title"], info["thumbnail"]), url, False
-        
+
 
 async def get_playlist(guild_id, query):
-    with YoutubeDL({"format": "bestaudio", "ignoreerrors": True, "skip_download": True}) as ydl:
+    with YoutubeDL({"format": "bestaudio", "ignoreerrors": True, "skip_download": True, "extract_flat": True}) as ydl:
         extraction = partial(ydl.extract_info, url=query, download=False)
         info = await client.loop.run_in_executor(None, extraction)
         playlist = info["entries"][1:]
         playlist_existing = [x for x in playlist if x]
         playlist_titles = [item["title"] for item in playlist_existing]
-        playlist_thumbnails = [item["thumbnail"] for item in playlist_existing]
-        playlist_urls = [sorted(filter(lambda x: x["audio_ext"] != "none" and x["video_ext"] == "none", item["formats"]), key=lambda x: x["quality"])[-1]["url"] for item in playlist_existing]
+        playlist_thumbnails = [item["thumbnails"][-1]["url"] for item in playlist_existing]
+        playlist_urls = ["" for item in playlist_existing]
         songs = [Song(QueryType.Url, playlist_urls[n], playlist_titles[n], playlist_thumbnails[n]) for n in range(len(playlist_titles))]
         for song in songs:
             state[guild_id].queue.append(song)
@@ -367,6 +367,7 @@ async def handle_new_song(guild_id: int, query: str, user: discord.Member):
             await update_player(guild_id)
         if playlist:
             await get_playlist(guild_id, query)
+            await update_player(guild_id)
 
 
 async def wait_for_song(guild_id):
