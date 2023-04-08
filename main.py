@@ -233,7 +233,10 @@ def get_empty_queue() -> str:
 
 
 def get_empty_embed(guild_id) -> discord.Embed:
-    loop_state = state[guild_id].settings.loop
+    if guild_id in state.keys():
+        loop_state = state[guild_id].settings.loop
+    else:
+        loop_state = LoopState.NoLoop
     embed = discord.Embed(
         color=discord.Color.from_rgb(3, 188, 255),
         title="Cicho tu...",
