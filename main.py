@@ -202,11 +202,11 @@ async def wavify(ctx: discord.ApplicationContext, message: str):
 async def remove(ctx: discord.ApplicationContext, song_id: int):
     guild = ctx.interaction.guild
     if guild.id not in state.keys():
-        await ctx.respond(f"Wpierw aktywuj bota za pomocą komendy /init!", ephemeral=True)
+        await ctx.respond("Wpierw aktywuj bota za pomocą komendy /init!", ephemeral=True)
     else:
         queue = state[guild.id].queue
         if len(queue) - 1 < song_id:
-            await ctx.respond(f"W kolejce nie ma takiej piosenki!", ephemeral=True)
+            await ctx.respond("W kolejce nie ma takiej piosenki!", ephemeral=True)
         else:
             queue.pop(song_id)
             await update_player(guild.id)
@@ -230,9 +230,9 @@ def get_empty_queue() -> str:
 def get_empty_embed(guild_id) -> discord.Embed:
     loop_state = state[guild_id].settings.loop
     embed = discord.Embed(
-        color = discord.Color.from_rgb(3, 188, 255),
-        title = "Cicho tu...",
-        description = f"**Loop:** {loop_indicators[loop_state]}\nWyślij tytuł albo URL piosnki aby dodać ją do kolejki!"
+        color=discord.Color.from_rgb(3, 188, 255),
+        title="Cicho tu...",
+        description=f"**Loop:** {loop_indicators[loop_state]}\nWyślij tytuł albo URL piosnki aby dodać ją do kolejki!"
     )
     embed.set_image(url="https://i.imgur.com/jIlHGic.png")
     return embed
@@ -258,13 +258,13 @@ def get_active_embed(guild_id: int) -> discord.Embed:
     song = state[guild_id].queue[0]
     loop_state = state[guild_id].settings.loop
     embed = discord.Embed(
-        color = discord.Color.from_rgb(3, 188, 255),
-        title = song.title,
-        description = f"**Loop:** {loop_indicators[loop_state]}\nWyślij tytuł albo URL piosnki aby dodać ją do kolejki!"
+        color=discord.Color.from_rgb(3, 188, 255),
+        title=song.title,
+        description=f"**Loop:** {loop_indicators[loop_state]}\nWyślij tytuł albo URL piosnki aby dodać ją do kolejki!"
     )
     embed.set_image(url=song.thumbnail_url)
     return embed
-            
+
 
 async def update_player(guild_id: int):
     player = state[guild_id].player
@@ -314,11 +314,14 @@ async def wait_for_song(guild_id):
 
 async def play_next_song(guild_id: str, voice: discord.VoiceClient, stream: Optional[str] = None):
     FFMPEG_OPTS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-    handle_song_end = lambda _: asyncio.run_coroutine_threadsafe(play_next_song(guild_id, voice), client.loop).result()
+
+    def handle_song_end():
+        asyncio.run_coroutine_threadsafe(play_next_song(guild_id, voice), client.loop).result()
+
     if stream and voice and voice.is_connected():
         voice.play(
             FFmpegPCMAudio(stream, **FFMPEG_OPTS),
-            after = handle_song_end
+            after=handle_song_end
         )
     else:
         _db.update_one({"guild_id": guild_id}, {"$set": {"settings.loop": state[guild_id].settings.loop}})
@@ -334,7 +337,7 @@ async def play_next_song(guild_id: str, voice: discord.VoiceClient, stream: Opti
 
             voice.play(
                 FFmpegPCMAudio(stream, **FFMPEG_OPTS),
-                after = handle_song_end
+                after=handle_song_end
             )
         else:
             await update_player(guild_id)
@@ -355,8 +358,3 @@ async def on_disconnect():
 api_token = dotenv_values(".env")["API_KEY"]
 
 client.run(api_token)
-    
-
-
-        
-    
