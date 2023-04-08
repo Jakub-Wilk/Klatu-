@@ -319,7 +319,7 @@ async def update_player(guild_id: int):
         await player.edit(*get_active_player(guild_id))
 
 
-async def search(query: str) -> tuple[Song, str]:
+async def search(query: str) -> tuple[Song, str, bool]:
     with YoutubeDL({"format": "bestaudio", "noplaylist": True, "skip_download": True, "playlist_items": "1"}) as ydl:
         if validate_url(query) and ("youtube.com" in query or "youtu.be" in query):
             extraction = partial(ydl.extract_info, url=query, download=False)
@@ -403,7 +403,7 @@ async def play_next_song(guild_id: str, voice: discord.VoiceClient, stream: Opti
         if len(state[guild_id].queue) > 0 and voice and voice.is_connected():
             await update_player(guild_id)
 
-            _, stream = await search(queue[0].query)
+            _, stream, _ = await search(queue[0].query)
 
             voice.play(
                 FFmpegPCMAudio(stream, **FFMPEG_OPTS),
