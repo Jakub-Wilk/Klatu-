@@ -182,6 +182,7 @@ async def init(ctx: discord.ApplicationContext, channel_name: str):
         channel_id = state[guild.id].settings.channel_id
         await ctx.respond(f"Bot już prężnie działa na <#{channel_id}>", ephemeral=True)
     else:
+        await ctx.response.defer(ephemeral=True)
         new_channel = await guild.create_text_channel(channel_name)
         history = get_history(guild.id)
         history_message = await new_channel.send(history)
@@ -193,7 +194,7 @@ async def init(ctx: discord.ApplicationContext, channel_name: str):
         new_guild_state = GuildState(new_guild_settings, new_channel, player, history_message)
         state[guild.id] = new_guild_state
         _db.insert_one({"guild_id": guild.id, "settings": asdict(new_guild_settings)})
-        await ctx.respond(f"Stworzyłem nowy kanał - <#{new_channel.id}>. Użyj go, aby puścić muzykę!", ephemeral=True)
+        await ctx.followup.send(f"Stworzyłem nowy kanał - <#{new_channel.id}>. Użyj go, aby puścić muzykę!", ephemeral=True)
 
 
 @client.slash_command()
