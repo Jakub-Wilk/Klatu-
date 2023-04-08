@@ -33,6 +33,7 @@ class LoopState(IntEnum):
 class GuildSettings:
     channel_id: int
     player_id: int
+    history_id: int
     loop: LoopState
 
 
@@ -52,8 +53,10 @@ class Song:
 @dataclass
 class GuildState:
     settings: GuildSettings
-    player: discord.Message
     channel: discord.TextChannel
+    player: discord.Message
+    history_message: discord.Message
+    history: list[str]
     queue: list[Song] = field(default_factory=list)
     playing: bool = False
 
@@ -66,12 +69,14 @@ async def on_ready():
     for guild_data in _db.find():
         channel = await client.fetch_channel(guild_data["settings"]["channel_id"])
         player = await channel.fetch_message(guild_data["settings"]["player_id"])
+        history_message = await channel.fetch_message(guild_data["settings"]["history_id"])
         guild_settings = GuildSettings(
             guild_data["settings"]["channel_id"],
             guild_data["settings"]["player_id"],
+            guild_data["settings"]["history_id"],
             LoopState(guild_data["settings"]["loop"])
         )
-        guild_state = GuildState(guild_settings, player, channel)
+        guild_state = GuildState(guild_settings, channel, player, history_message, guild_data["history"])
         state[guild_data["guild_id"]] = guild_state
     print(f"We have logged in as {client.user}")
 
@@ -266,6 +271,26 @@ def get_active_embed(guild_id: int) -> discord.Embed:
     return embed
 
 
+def get_history(guild_id: int) -> str:
+    history = state[guild_id].history
+    if len(history) > 0:
+        history_text = ""
+        for counter, search in reversed(list(enumerate(history))):
+            history_text += f"**{counter if counter >= 10 else f'0{counter}'}.** {search}\n"
+    else:
+        history_text = ""
+    return history_text + "⬆️ **Historia wyszukiwania** ⬆️"
+
+
+async def update_history(guild_id: int, song: Song):
+    if len(state[guild_id].history) == 50:
+        state[guild_id].history.pop()
+    state[guild_id].history.insert(0, song.query)
+    _db.update_one({"guild_id": guild_id}, {"$set": {"history": state[guild_id].history}})
+    history_message = state[guild_id].history_message
+    await history_message.edit(get_history(guild_id))
+
+
 async def update_player(guild_id: int):
     player = state[guild_id].player
     if len(state[guild_id].queue) == 0:
@@ -294,6 +319,9 @@ async def handle_new_song(guild_id: int, query: str, user: discord.Member):
     channel = user.voice.channel
     if channel:
         state[guild_id].queue.append(song)
+
+        if song.query_type == QueryType.Title:
+            await update_history(guild_id, song)
 
         voice: discord.VoiceClient = dget(client.voice_clients, guild__id=guild_id)
 
