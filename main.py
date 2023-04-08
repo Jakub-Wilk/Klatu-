@@ -318,11 +318,9 @@ async def search(query: str) -> tuple[Song, str]:
         if validate_url(query) and ("youtube.com" in query or "youtu.be" in query):
             extraction = partial(ydl.extract_info, url=query, download=False)
             info = await client.loop.run_in_executor(None, extraction)
-            if "formats" in info.keys():
-                formats = info["formats"]
-            else:
-                formats = info["entries"][0]["formats"]
-            url = sorted(filter(lambda x: x["audio_ext"] != "none" and x["video_ext"] == "none", formats), key=lambda x: x["quality"])[-1]["url"]
+            if "formats" not in info.keys():
+                info = info["entries"][0]
+            url = sorted(filter(lambda x: x["audio_ext"] != "none" and x["video_ext"] == "none", info["formats"]), key=lambda x: x["quality"])[-1]["url"]
             if "list" in query:
                 playlist = True
             else:
