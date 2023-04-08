@@ -286,8 +286,8 @@ def get_history(guild_id: int) -> str:
         history_text = ""
         for counter, search in reversed(list(enumerate(history, 1))):
             untrimmed_text = f"**{counter if counter >= 10 else f'0{counter}'}.** {search}\n"
-            if len(untrimmed_text) > 36:
-                history_text += untrimmed_text[:33] + "..."
+            if len(untrimmed_text) > 72:
+                history_text += untrimmed_text[:69] + "...\n"
             else:
                 history_text += untrimmed_text
     else:
@@ -297,7 +297,7 @@ def get_history(guild_id: int) -> str:
 
 async def update_history(guild_id: int, song: Song):
     if song.query not in state[guild_id].history:
-        if len(state[guild_id].history) == 50:
+        if len(state[guild_id].history) == 25:
             state[guild_id].history.pop()
         state[guild_id].history.insert(0, song.title)
         _db.update_one({"guild_id": guild_id}, {"$set": {"history": state[guild_id].history}})
