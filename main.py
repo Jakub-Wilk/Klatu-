@@ -257,9 +257,15 @@ def get_active_queue(guild_id: int) -> str:
     queue = state[guild_id].queue
     if len(queue) > 1:
         queue_text = "**__Kolejka:__**\n"
-        for counter, song in reversed(list(enumerate(queue[1:], 1))):
+        if len(queue) > 25:
+            queue_text += "[...]\n"
+        for counter, song in reversed(list(enumerate(queue[1:26], 1))):
             title = song.title
-            queue_text += f"**{counter:>6}.** {title}\n"
+            untrimmed_text = f"**{counter if counter >= 10 else f'0{counter}':>6}.** {title}\n"
+            if len(untrimmed_text) > 72:
+                queue_text += untrimmed_text[:69] + "...\n"
+            else:
+                queue_text += untrimmed_text
         return queue_text
     else:
         return get_empty_queue()
