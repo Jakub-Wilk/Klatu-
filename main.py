@@ -296,7 +296,7 @@ def get_history(guild_id: int) -> str:
 
 
 async def update_history(guild_id: int, song: Song):
-    if song.query not in state[guild_id].history:
+    if song.title not in state[guild_id].history:
         if len(state[guild_id].history) == 25:
             state[guild_id].history.pop()
         state[guild_id].history.insert(0, song.title)
