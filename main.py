@@ -56,7 +56,7 @@ class GuildState:
     channel: discord.TextChannel
     player: discord.Message
     history_message: discord.Message
-    history: list[str]
+    history: list[str] = field(default_factory=list)
     queue: list[Song] = field(default_factory=list)
     playing: bool = False
 
@@ -183,12 +183,14 @@ async def init(ctx: discord.ApplicationContext, channel_name: str):
         await ctx.respond(f"Bot już prężnie działa na <#{channel_id}>", ephemeral=True)
     else:
         new_channel = await guild.create_text_channel(channel_name)
+        history = get_history(guild.id)
+        history_message = await new_channel.send(history)
         player_message = get_empty_player(guild.id)
         player = await new_channel.send(player_message[0], embed=player_message[1])
         for emoji in player_controls:
             await player.add_reaction(emoji)
-        new_guild_settings = GuildSettings(new_channel.id, player.id, LoopState.NoLoop)
-        new_guild_state = GuildState(new_guild_settings, player, new_channel)
+        new_guild_settings = GuildSettings(new_channel.id, player.id, history_message.id, LoopState.NoLoop)
+        new_guild_state = GuildState(new_guild_settings, new_channel, player, history_message)
         state[guild.id] = new_guild_state
         _db.insert_one({"guild_id": guild.id, "settings": asdict(new_guild_settings)})
         await ctx.respond(f"Stworzyłem nowy kanał - <#{new_channel.id}>. Użyj go, aby puścić muzykę!", ephemeral=True)
@@ -275,7 +277,10 @@ def get_active_embed(guild_id: int) -> discord.Embed:
 
 
 def get_history(guild_id: int) -> str:
-    history = state[guild_id].history
+    if guild_id in state.keys():
+        history = state[guild_id].history
+    else:
+        history = []
     if len(history) > 0:
         history_text = ""
         for counter, search in reversed(list(enumerate(history))):
