@@ -328,7 +328,7 @@ async def search(query: str) -> tuple[Song, str, bool]:
             if "formats" not in info.keys():
                 info = info["entries"][0]
             url = sorted(filter(lambda x: x["audio_ext"] != "none" and x["video_ext"] == "none", info["formats"]), key=lambda x: x["quality"])[-1]["url"]
-            if "list" in query:
+            if "playlist" in query:
                 playlist = True
             else:
                 playlist = False
@@ -342,10 +342,6 @@ async def search(query: str) -> tuple[Song, str, bool]:
 
 
 async def get_playlist(guild_id, query):
-    if "watch" in query:
-        parsed_url = urlparse(query)
-        playlist_id = parse_qs(parsed_url.query)["list"][0]
-        query = f"https://www.youtube.com/playlist?list={playlist_id}"
     with YoutubeDL({"format": "bestaudio", "ignoreerrors": True, "skip_download": True, "extract_flat": True}) as ydl:
         extraction = partial(ydl.extract_info, url=query, download=False)
         info = await client.loop.run_in_executor(None, extraction)
